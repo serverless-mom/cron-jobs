@@ -21,7 +21,83 @@ Resources:
         timerE43297E4:
           Type: Schedule
           Properties:
-            Schedule: rate(1 minute)
+            Schedule: rate(79 minutes)
+          Metadata:
+            StackeryName: every 7 minutes
+  EdgeFunction:
+    Type: Custom::StackeryEdgeFunction
+    Properties:
+      ServiceToken: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:stackery-agent-commander
+      FunctionName: !Sub ${AWS::StackName}-EdgeFunction
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: Throw Error
+      Runtime: nodejs8.10
+      CodeUri: src/EdgeFunction
+      Handler: index.handler
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Role: !GetAtt EdgeFunctionRole.Arn
+    Metadata:
+      StackeryName: Throw Error
+  EdgeFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-EdgeFunction
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service:
+              - lambda.amazonaws.com
+              - edgelambda.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-Function
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: trigger Chromeless
+      CodeUri: src/Function
+      Handler: index.handler
+      Runtime: nodejs8.10
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+      Events:
+        Timer2:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+          Metadata:
+            StackeryName: every hour
+    Metadata:
+      StackeryName: trigger Chromeless
+  Function2:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-Function2
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: notification layer
+      CodeUri: src/Function2
+      Handler: index.handler
+      Runtime: nodejs8.10
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+    Metadata:
+      StackeryName: notification layer
 Parameters:
   StackeryStackTagName:
     Type: String
@@ -29,3 +105,12 @@ Parameters:
   StackeryEnvironmentTagName:
     Type: String
     Description: Environment Name (injected by Stackery at deployment time)
+  StackTagName:
+    Type: String
+    Description: Stack Name (injected by Stackery at deployment time)
+  EnvironmentTagName:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+Metadata:
+  StackeryErrorsTargets:
+    Function2: {}
